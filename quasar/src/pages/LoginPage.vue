@@ -100,11 +100,14 @@ onMounted(() => {
   }
 })
 
+  const liveUrl = 'https://nodesqltaskmgr-production.up.railway.app'
+  const localUrl = 'http://localhost:1005'
+
 const onSubmit = async () => {
   loading.value = true
   
   try {
-    const response = await fetch('http://localhost:1005/api/login', {
+    const response = await fetch(`${liveUrl}/api/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

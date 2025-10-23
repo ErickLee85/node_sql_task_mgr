@@ -107,11 +107,14 @@ const form = ref({
 const loading = ref(false)
 const showPassword = ref(false)
 
+  const liveUrl = 'https://nodesqltaskmgr-production.up.railway.app'
+  const localUrl = 'http://localhost:1005'
+
 const onSubmit = async () => {
   loading.value = true
   
   try {
-    const response = await fetch('http://localhost:1005/api/register', {
+    const response = await fetch(`${liveUrl}/api/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

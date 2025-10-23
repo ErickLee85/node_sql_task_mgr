@@ -14,13 +14,13 @@ function connected(err) {
 }
 
 // Enable WAL mode for better performance
-DB.run('PRAGMA journal_mode = WAL;', (err) => {
-    if(err) {
-        console.log('WAL mode error:', err.message)
-    } else {
-        console.log('WAL mode enabled')
-    }
-});
+// DB.run('PRAGMA journal_mode = WAL;', (err) => {
+//     if(err) {
+//         console.log('WAL mode error:', err.message)
+//     } else {
+//         console.log('WAL mode enabled')
+//     }
+// });
 
 let sql = `CREATE TABLE IF NOT EXISTS users(
             user_id INTEGER PRIMARY KEY,

@@ -257,6 +257,9 @@ const searchingTasks = ref(false)
 const editingTaskId = ref(null)
 const inputFocused = ref(false)
 
+  const liveUrl = 'https://nodesqltaskmgr-production.up.railway.app'
+  const localUrl = 'http://localhost:1005'
+
 const items = ref([
   1,2,3,4,5,6,7,8,9,10
 ])
@@ -424,7 +427,7 @@ const getAuthHeaders = () => {
 const fetchTasks = async () => {
   loading.value = true
   try {
-    const response = await fetch('http://localhost:1005/api/tasks', {
+    const response = await fetch(`${liveUrl}/api/tasks`, {
       headers: getAuthHeaders()
     })
 
@@ -472,7 +475,7 @@ const createTask = async () => {
   creating.value = true
   
   try {
-    const response = await fetch('http://localhost:1005/api/tasks', {
+    const response = await fetch(`${liveUrl}}/api/tasks`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -532,7 +535,7 @@ const updateTask = async () => {
     // Find the current task to preserve its complete status
     const currentTask = Array.from(tasks.value).find(t => t.id === editingTaskId.value)
     
-    const response = await fetch(`http://localhost:1005/api/tasks/${editingTaskId.value}`, {
+    const response = await fetch(`${liveUrl}/api/tasks/${editingTaskId.value}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -570,7 +573,7 @@ const toggleActiveStatus = (task) => {
 
 const toggleTask = async (task) => {
   try {
-    const response = await fetch(`http://localhost:1005/api/tasks/${task.id}`, {
+    const response = await fetch(`${liveUrl}/api/tasks/${task.id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -608,7 +611,7 @@ const deleteTask = async (task) => {
     persistent: true
   }).onOk(async () => {
     try {
-      const response = await fetch(`http://localhost:1005/api/tasks/${task.id}`, {
+      const response = await fetch(`${liveUrl}/api/tasks/${task.id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       })

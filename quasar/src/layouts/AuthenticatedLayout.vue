@@ -269,9 +269,11 @@ const changePassword = async () => {
   }
 
   changingPassword.value = true
+  const liveUrl = 'https://nodesqltaskmgr-production.up.railway.app'
+  const localUrl = 'http://localhost:1005'
   
   try {
-    const response = await fetch('http://localhost:1005/api/user/password', {
+    const response = await fetch(`${liveUrl}/api/user/password`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -315,7 +317,7 @@ const deleteAccount = async () => {
   deletingAccount.value = true
   
   try {
-    const response = await fetch('http://localhost:1005/api/user/account', {
+    const response = await fetch(`${liveUrl}/api/user/account`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
       body: JSON.stringify({
