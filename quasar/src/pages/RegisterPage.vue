@@ -114,7 +114,7 @@ const onSubmit = async () => {
   loading.value = true
   
   try {
-    const response = await fetch(`${liveUrl}/api/register`, {
+    const response = await fetch(`${localUrl}/api/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

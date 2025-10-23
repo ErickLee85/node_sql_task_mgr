@@ -273,7 +273,7 @@ const changePassword = async () => {
   const localUrl = 'http://localhost:1005'
   
   try {
-    const response = await fetch(`${liveUrl}/api/user/password`, {
+    const response = await fetch(`${localUrl}/api/user/password`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -317,7 +317,7 @@ const deleteAccount = async () => {
   deletingAccount.value = true
   
   try {
-    const response = await fetch(`${liveUrl}/api/user/account`, {
+    const response = await fetch(`${localUrl}/api/user/account`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
       body: JSON.stringify({

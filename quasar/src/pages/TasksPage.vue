@@ -1,5 +1,5 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-2'" class="page-container">
+  <q-page class="page-container">
     <!-- Page-specific toolbar for search and add task -->
     <div style="min-height: 60px; max-height: 60px;" class="row items-center q-pa-sm border-bottom" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
       <div class="col">
@@ -18,7 +18,6 @@
         debounce="100"
         dense
         style="margin-right: 20px;"
-        size="sm"
         class="search-input"
         @focus="() => {inputFocused = true;}"
         @blur="() => {inputFocused = false;}"
@@ -427,7 +426,7 @@ const getAuthHeaders = () => {
 const fetchTasks = async () => {
   loading.value = true
   try {
-    const response = await fetch(`${liveUrl}/api/tasks`, {
+    const response = await fetch(`${localUrl}/api/tasks`, {
       headers: getAuthHeaders()
     })
 
@@ -475,7 +474,7 @@ const createTask = async () => {
   creating.value = true
   
   try {
-    const response = await fetch(`${liveUrl}}/api/tasks`, {
+    const response = await fetch(`${localUrl}/api/tasks`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -535,7 +534,7 @@ const updateTask = async () => {
     // Find the current task to preserve its complete status
     const currentTask = Array.from(tasks.value).find(t => t.id === editingTaskId.value)
     
-    const response = await fetch(`${liveUrl}/api/tasks/${editingTaskId.value}`, {
+    const response = await fetch(`${localUrl}/api/tasks/${editingTaskId.value}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -573,7 +572,7 @@ const toggleActiveStatus = (task) => {
 
 const toggleTask = async (task) => {
   try {
-    const response = await fetch(`${liveUrl}/api/tasks/${task.id}`, {
+    const response = await fetch(`${localUrl}/api/tasks/${task.id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -611,7 +610,7 @@ const deleteTask = async (task) => {
     persistent: true
   }).onOk(async () => {
     try {
-      const response = await fetch(`${liveUrl}/api/tasks/${task.id}`, {
+      const response = await fetch(`${localUrl}/api/tasks/${task.id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       })
