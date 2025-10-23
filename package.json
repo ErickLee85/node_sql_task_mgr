@@ -8,7 +8,7 @@
     "start": "node index.js",
     "dev": "node index.js",
     "install-all": "npm install && cd quasar && npm install",
-    "build": "cd quasar && quasar build"
+    "build": "npm install && cd quasar && npm install && npm run build"
   },
   "keywords": [],
   "author": "",
