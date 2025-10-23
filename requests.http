@@ -1,0 +1,46 @@
+### GET REQUEST
+GET http://localhost:1005
+
+
+### POST REQUESTS
+
+POST http://localhost:1005/api?name=john&email=johnwick@hollywood.com&phone=911
+
+###
+POST http://localhost:1005/api?name=erick&email=erickcrowne@icloud.com&phone=9015704850&pw=Darwin12021809
+
+### GET TABLE DATA
+GET http://localhost:1005/api
+
+
+### AUTH REQUEST - Check password *login*
+GET http://localhost:1005/api/auth?email=erickcrowne@icloud.com&pw=Darwin12021809
+
+###
+GET http://localhost:1005/api/auth?email=erickcrowne@icloud.com&pw=WrongPassword
+
+
+### DELETE REQUEST
+DELETE http://localhost:1005/api?id=1
+
+###
+
+DELETE http://localhost:1005/api?id=2
+
+
+### TASK ENDPOINTS
+
+### Create a new task for user
+POST http://localhost:1005/new/task?user_id=1&title=Complete Node.js Tutorial&description=Finish learning Node with SQL&dueDate=2025-10-25&complete=0
+
+###
+POST http://localhost:1005/new/task?user_id=1&title=Build REST API&description=Create a full CRUD API&dueDate=2025-10-30
+
+###
+POST http://localhost:1005/new/task?user_id=2&title=Study Bcrypt&complete=1
+
+### Get all tasks for a user
+GET http://localhost:1005/tasks?user_id=1
+
+###
+GET http://localhost:1005/tasks?user_id=2
