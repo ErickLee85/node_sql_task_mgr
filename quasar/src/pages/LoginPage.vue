@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-center" style="min-height: 100vh" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-2'">
-    <q-card style="width: 400px; max-width: 90vw">
+  <div class="flex flex-center" style="min-height: 100vh" :class="$q.dark.isActive ? 'custom-dark-bg' : 'custom-light-bg'">
+    <q-card style="width: 400px; max-width: 90vw" class="shadow-12">
       <q-card-section>
         <div class="text-h5 text-center" style="text-transform: uppercase;">Login</div>
       </q-card-section>
@@ -78,6 +78,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { fetchAPI } from 'src/utils/api'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -105,11 +106,8 @@ const onSubmit = async () => {
   loading.value = true
   
   try {
-    const response = await fetch('http://localhost:1005/api/login', {
+    const response = await fetchAPI('/api/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({
         email: form.value.email,
         password: form.value.password

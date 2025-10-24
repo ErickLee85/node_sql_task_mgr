@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lff">
-    <q-header bordered :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+    <q-header bordered :class="$q.dark.isActive ? 'bg-black' : 'bg-white'">
       <q-toolbar>
         <div class="col">
           <div class="row items-center q-gutter-sm">
@@ -202,6 +202,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { fetchAPI } from 'src/utils/api'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -230,14 +231,6 @@ const user = computed(() => {
   const userData = localStorage.getItem('user')
   return userData ? JSON.parse(userData) : null
 })
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token')
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  }
-}
 
 const logout = () => {
   localStorage.removeItem('token')
@@ -269,13 +262,10 @@ const changePassword = async () => {
   }
 
   changingPassword.value = true
-  const liveUrl = 'https://nodesqltaskmgr-production.up.railway.app'
-  const localUrl = 'http://localhost:1005'
   
   try {
-    const response = await fetch(`${localUrl}/api/user/password`, {
+    const response = await fetchAPI('/api/user/password', {
       method: 'PUT',
-      headers: getAuthHeaders(),
       body: JSON.stringify({
         currentPassword: passwordForm.value.currentPassword,
         newPassword: passwordForm.value.newPassword
@@ -317,9 +307,8 @@ const deleteAccount = async () => {
   deletingAccount.value = true
   
   try {
-    const response = await fetch(`${localUrl}/api/user/account`, {
+    const response = await fetchAPI('/api/user/account', {
       method: 'DELETE',
-      headers: getAuthHeaders(),
       body: JSON.stringify({
         password: deleteAccountPassword.value
       })
@@ -351,3 +340,12 @@ const deleteAccount = async () => {
   }
 }
 </script>
+
+<style>
+.custom-dark-bg {
+  background: #0e1110;
+}
+.custom-light-bg {
+  background:#f6f6f6;
+}
+</style>

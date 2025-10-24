@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-center background" style="min-height: 100vh" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-2'">
-    <q-card style="width: 400px; max-width: 90vw">
+  <div class="flex flex-center background" style="min-height: 100vh" :class="$q.dark.isActive ? 'custom-dark-bg' : 'custom-light-bg'">
+    <q-card style="width: 400px; max-width: 90vw" class="shadow-12 rounded">
       <q-card-section>
         <div class="text-h5 text-center">Create Account</div>
       </q-card-section>
@@ -93,6 +93,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { fetchAPI } from 'src/utils/api'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -107,18 +108,12 @@ const form = ref({
 const loading = ref(false)
 const showPassword = ref(false)
 
-  const liveUrl = 'https://nodesqltaskmgr-production.up.railway.app'
-  const localUrl = 'http://localhost:1005'
-
 const onSubmit = async () => {
   loading.value = true
   
   try {
-    const response = await fetch(`${localUrl}/api/register`, {
+    const response = await fetchAPI('/api/register', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({
         name: form.value.name,
         email: form.value.email,
