@@ -12,6 +12,7 @@
             label="Full Name"
             filled
             dense
+            color="teal"
           >
             <template v-slot:prepend>
               <q-icon name="person" />
@@ -24,6 +25,7 @@
             type="email"
             filled
             dense
+            color="teal"
           >
             <template v-slot:prepend>
               <q-icon name="email" />
@@ -35,6 +37,9 @@
             label="Phone (optional)"
             filled
             dense
+            color="teal"
+            mask="(###) ### - ####"
+            fill-mask
           >
             <template v-slot:prepend>
               <q-icon name="phone" />
@@ -47,6 +52,7 @@
             label="Password"
             filled
             dense
+            color="teal"
           >
             <template v-slot:prepend>
               <q-icon name="lock" />
@@ -59,6 +65,17 @@
               />
             </template>
           </q-input>
+          
+          <!-- Password Strength Meter -->
+          <div v-if="form.password" class="q-mt-sm">
+            <div class="text-caption text-grey-7 q-mb-xs">Password Strength: {{ passwordStrength.label }}</div>
+            <q-linear-progress 
+              :value="passwordStrength.value" 
+              :color="passwordStrength.color"
+              size="8px"
+              rounded
+            />
+          </div>
 
           <div class="q-mt-md">
             <q-btn
@@ -90,7 +107,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { fetchAPI } from 'src/utils/api'
@@ -107,6 +124,35 @@ const form = ref({
 
 const loading = ref(false)
 const showPassword = ref(false)
+
+// Password strength calculator
+const passwordStrength = computed(() => {
+  const password = form.value.password
+  if (!password) return { value: 0, label: '', color: 'grey' }
+
+  let strength = 0
+  
+  // Length check
+  if (password.length >= 8) strength++
+  if (password.length >= 12) strength++
+  
+  // Character variety checks
+  if (/[a-z]/.test(password)) strength++
+  if (/[A-Z]/.test(password)) strength++
+  if (/[0-9]/.test(password)) strength++
+  if (/[^a-zA-Z0-9]/.test(password)) strength++
+
+  // Map strength to label and color
+  if (strength <= 2) {
+    return { value: 0.25, label: 'Weak', color: 'red' }
+  } else if (strength <= 4) {
+    return { value: 0.5, label: 'Fair', color: 'orange' }
+  } else if (strength <= 5) {
+    return { value: 0.75, label: 'Good', color: 'light-green' }
+  } else {
+    return { value: 1, label: 'Strong', color: 'green' }
+  }
+})
 
 const onSubmit = async () => {
   loading.value = true

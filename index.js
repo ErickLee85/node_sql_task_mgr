@@ -246,14 +246,14 @@ app.delete('/api', (req, res) => {
 app.post('/api/tasks', authenticateToken, (req, res) => {
     res.set('content-type', 'application/json');
     
-    const { title, description, dueDate, complete } = req.body;
+    const { title, description, dueDate, complete, priority } = req.body;
     
     // Check if required fields exist
     if (!title) {
         return res.status(400).json({ error: "Missing required field: title" });
     }
     
-    const sql = 'INSERT INTO tasks(user_id, title, description, dueDate, complete) VALUES(?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO tasks(user_id, title, description, dueDate, complete, priority) VALUES(?, ?, ?, ?, ?, ?)';
     const completeValue = complete ? 1 : 0;
     
     try {
@@ -262,7 +262,8 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
             title,
             description || '',
             dueDate || '',
-            completeValue
+            completeValue,
+            priority
         ], function (err) {
             if(err) {
                 console.log(err.message);
@@ -300,7 +301,8 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
                 title: row.title,
                 description: row.description,
                 dueDate: row.dueDate,
-                complete: row.complete === 1
+                complete: row.complete === 1,
+                priority: row.priority
             }));
             
             res.status(200).json({ tasks });

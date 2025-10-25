@@ -54,6 +54,7 @@ function initializeDatabase() {
         description TEXT,
         dueDate TEXT,
         complete INTEGER DEFAULT 0,
+        priority TEXT,
         FOREIGN KEY (user_id) REFERENCES users(user_id)
     )`;
 

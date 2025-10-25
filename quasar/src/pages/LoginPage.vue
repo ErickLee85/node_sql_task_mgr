@@ -13,6 +13,7 @@
             type="email"
             filled
             dense
+            color="teal"
           >
             <template v-slot:prepend>
               <q-icon name="email" />
@@ -24,6 +25,7 @@
             :type="showPassword ? 'text' : 'password'"
             label="Password"
             filled
+            color="teal"
             dense
           >
             <template v-slot:prepend>
