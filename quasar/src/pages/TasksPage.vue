@@ -9,6 +9,7 @@
       </div>
       <q-input
         v-if="tasks.size > 0 && !$q.platform.is.mobile"
+        ref="searchInputRef"
         v-model="searchQuery"
         label="Search Tasks"
         rounded=false
@@ -22,6 +23,9 @@
         <template v-slot:append>
           <q-icon name="search" />
         </template>
+        <template v-slot:hint>
+          <span class="text-caption text-grey-6">Shift+F to focus</span>
+        </template>
       </q-input>
       <q-btn
         size="md"
@@ -30,8 +34,23 @@
         @click="() => {showDialog = true; addTaskSound()}"
         label="Add Task"
         class='bg-teal text-white'
-      />
+      >
+        <q-tooltip>Add Task (Shift+A)</q-tooltip>
+      </q-btn>
     </div>
+
+    <!-- Floating Keyboard Shortcuts Button -->
+    <q-page-sticky position="bottom-right" :offset="[18, 18]" v-if="!$q.platform.is.mobile">
+      <q-btn
+        fab
+        icon="keyboard"
+        color="grey-7"
+        @click="showShortcutsHelp = true"
+        size="sm"
+      >
+        <q-tooltip>Keyboard Shortcuts (?)</q-tooltip>
+      </q-btn>
+    </q-page-sticky>
 
 
     <div class="container">
@@ -85,7 +104,7 @@
         <template v-for="(task, index) in filteredTasks" :key="task.id">
           <q-expansion-item
             :class="{ 'task-active': task.isActive }"
-            @before-show="playClickSound"
+            @before-show="() => { playClickSound(); lastOpenedTask = task }"
             @before-hide="playClickSound"
             :default-opened="index === 0"
           >
@@ -433,7 +452,12 @@
     <q-dialog v-model="showSubtaskDialog" backdrop-filter="blur(5px)">
       <q-card style="min-width: 400px" :class="$q.dark.isActive ? 'bg-black shadow-10' : 'bg-white shadow-10'">
         <q-card-section class="flex justify-between items-center">
-          <div class="text-h6">{{ editingSubtask ? 'Edit Subtask' : 'Add Subtask' }}</div>
+          <div>
+            <div class="text-h6">{{ editingSubtask ? 'Edit Subtask' : 'Add Subtask' }}</div>
+            <div class="text-caption text-grey-6" v-if="currentTaskForSubtask">
+            {{ currentTaskForSubtask.title }}
+            </div>
+          </div>
           <q-btn round flat icon="close" @click="closeSubtaskDialog" />
         </q-card-section>
 
@@ -495,11 +519,156 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- Command Palette -->
+    <q-dialog v-model="showCommandPalette" position="top">
+      <q-card style="min-width: 500px; max-width: 600px; margin-top: 60px;">
+        <q-card-section class="q-pa-none">
+          <q-input
+            v-model="commandPaletteQuery"
+            placeholder="Type a command or search..."
+            autofocus
+            borderless
+            class="q-pa-md"
+          >
+            <template v-slot:prepend>
+              <q-icon name="search" />
+            </template>
+            <template v-slot:append>
+              <q-badge color="grey-6" label="Esc" />
+            </template>
+          </q-input>
+          <q-separator />
+          <q-list style="max-height: 400px; overflow-y: auto;">
+            <q-item
+              v-for="action in commandPaletteActions"
+              :key="action.label"
+              clickable
+              v-ripple
+              @click="executeCommandPaletteAction(action)"
+            >
+              <q-item-section avatar>
+                <q-icon :name="action.icon" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ action.label }}</q-item-label>
+              </q-item-section>
+              <q-item-section side v-if="action.shortcut">
+                <q-badge color="grey-6" :label="action.shortcut" />
+              </q-item-section>
+            </q-item>
+            <q-item v-if="commandPaletteActions.length === 0">
+              <q-item-section>
+                <q-item-label class="text-grey">No results found</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Keyboard Shortcuts Help -->
+    <q-dialog v-model="showShortcutsHelp">
+      <q-card style="min-width: 500px; max-width: 600px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Keyboard Shortcuts</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="q-gutter-md">
+            <div>
+              <div class="text-subtitle2 text-grey-8 q-mb-sm">Global - Left Hand Shortcuts</div>
+              <q-list bordered separator>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>New Task</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="teal" label="Shift+A" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Add Subtask</q-item-label>
+                    <q-item-label caption>To last opened task</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="teal" label="Shift+S" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Toggle Dark Mode</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="teal" label="Shift+D" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Focus Search</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="teal" label="Shift+F" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Command Palette</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="teal" label="Shift+C" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Clear Filters</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="teal" label="Shift+X" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Refresh Tasks</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="teal" label="Shift+Z" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Show This Help</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="grey-7" label="?" />
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>Close Dialog</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="grey-7" label="Esc" />
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+
+            <div class="text-caption text-grey-6 q-mt-md">
+              💡 Tip: All shortcuts use <strong>Shift + left hand keys</strong> (A, S, D, F, C, X, Z) for easy access!
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import confetti from 'canvas-confetti'
@@ -527,6 +696,14 @@ const editMode = ref(false)
 const searchingTasks = ref(false)
 const editingTaskId = ref(null)
 const inputFocused = ref(false)
+
+// Keyboard shortcuts
+const showShortcutsHelp = ref(false)
+const showCommandPalette = ref(false)
+const commandPaletteQuery = ref('')
+const selectedTaskIndex = ref(-1)
+const searchInputRef = ref(null)
+const lastOpenedTask = ref(null)
 
 // Subtask refs
 const showSubtaskDialog = ref(false)
@@ -1430,6 +1607,158 @@ const clearFilters = () => {
   searchQuery.value = ''
 }
 
+// Keyboard shortcuts handler
+const handleKeyboardShortcut = (event) => {
+  // Check for our shortcuts with Shift key
+  if (event.shiftKey && (event.key === 'A' || event.key === 'S' || event.key === 'D' || event.key === 'F' || event.key === 'C' || event.key === 'X' || event.key === 'Z')) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  // Don't trigger shortcuts when typing in inputs
+  if (inputFocused.value || event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+    // Except for Escape key
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      showDialog.value = false
+      showSubtaskDialog.value = false
+      showShortcutsHelp.value = false
+      showCommandPalette.value = false
+      event.target.blur()
+      return
+    }
+    return
+  }
+
+  // Shift + A - Add Task
+  if (event.shiftKey && event.key === 'A') {
+    showDialog.value = true
+    addTaskSound()
+    return
+  }
+
+  // Shift + S - Add Subtask to Last Opened Task
+  if (event.shiftKey && event.key === 'S') {
+    if (lastOpenedTask.value) {
+      currentTaskForSubtask.value = lastOpenedTask.value
+      newSubtask.value = { title: '', dependsOn: null }
+      editingSubtask.value = null
+      showSubtaskDialog.value = true
+    } else {
+      toast.info('Please expand a task first to add a subtask')
+    }
+    return
+  }
+
+  // Shift + D - Toggle Dark/Light Mode
+  if (event.shiftKey && event.key === 'D') {
+    $q.dark.toggle()
+    return
+  }
+
+  // Shift + F - Focus Search
+  if (event.shiftKey && event.key === 'F') {
+    if (searchInputRef.value) {
+      searchInputRef.value.focus()
+    }
+    return
+  }
+
+  // Shift + C - Command Palette
+  if (event.shiftKey && event.key === 'C') {
+    showCommandPalette.value = !showCommandPalette.value
+    commandPaletteQuery.value = ''
+    return
+  }
+
+  // Shift + X - Clear Filters
+  if (event.shiftKey && event.key === 'X') {
+    clearFilters()
+    toast.success('Filters cleared!')
+    return
+  }
+
+  // Shift + Z - Refresh Tasks
+  if (event.shiftKey && event.key === 'Z') {
+    fetchTasks()
+    toast.success('Tasks refreshed!')
+    return
+  }
+
+  // ? - Show Shortcuts Help (Shift + /)
+  if (event.key === '?' || (event.shiftKey && event.key === '/')) {
+    event.preventDefault()
+    showShortcutsHelp.value = !showShortcutsHelp.value
+    return
+  }
+
+  // Escape - Close dialogs
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    showDialog.value = false
+    showSubtaskDialog.value = false
+    showShortcutsHelp.value = false
+    showCommandPalette.value = false
+    return
+  }
+
+  // Space - Toggle task completion (if a task is focused/selected)
+  if (event.key === ' ' && selectedTaskIndex.value >= 0) {
+    event.preventDefault()
+    const task = filteredTasks.value[selectedTaskIndex.value]
+    if (task) {
+      toggleTask(task)
+    }
+    return
+  }
+}
+
+// Command palette actions
+const commandPaletteActions = computed(() => {
+  const actions = [
+    { icon: 'add', label: 'New Task', shortcut: 'Shift+A', action: () => { showDialog.value = true; addTaskSound(); showCommandPalette.value = false } },
+    { icon: 'add_task', label: 'Add Subtask', shortcut: 'Shift+S', action: () => { 
+      if (lastOpenedTask.value) {
+        currentTaskForSubtask.value = lastOpenedTask.value
+        newSubtask.value = { title: '', dependsOn: null }
+        editingSubtask.value = null
+        showSubtaskDialog.value = true
+        showCommandPalette.value = false
+      } else {
+        toast.info('Please expand a task first')
+        showCommandPalette.value = false
+      }
+    }},
+    { icon: 'dark_mode', label: 'Toggle Dark Mode', shortcut: 'Shift+D', action: () => { $q.dark.toggle(); showCommandPalette.value = false } },
+    { icon: 'search', label: 'Focus Search', shortcut: 'Shift+F', action: () => { searchInputRef.value?.focus(); showCommandPalette.value = false } },
+    { icon: 'filter_alt_off', label: 'Clear Filters', shortcut: 'Shift+X', action: () => { clearFilters(); toast.success('Filters cleared!'); showCommandPalette.value = false } },
+    { icon: 'refresh', label: 'Refresh Tasks', shortcut: 'Shift+Z', action: () => { fetchTasks(); toast.success('Tasks refreshed!'); showCommandPalette.value = false } },
+    { icon: 'help', label: 'Show Keyboard Shortcuts', shortcut: '?', action: () => { showShortcutsHelp.value = true; showCommandPalette.value = false } },
+  ]
+
+  // Add filter actions
+  filterOptions.forEach(filter => {
+    actions.push({
+      icon: 'filter_alt',
+      label: `Filter: ${filter.label}`,
+      action: () => { selectedFilter.value = filter.value; showCommandPalette.value = false }
+    })
+  })
+
+  // Filter actions based on query
+  if (commandPaletteQuery.value) {
+    return actions.filter(a => 
+      a.label.toLowerCase().includes(commandPaletteQuery.value.toLowerCase())
+    )
+  }
+
+  return actions
+})
+
+const executeCommandPaletteAction = (action) => {
+  action.action()
+}
+
 onMounted(async () => {
   await fetchTasks()
   const filterSelection = localStorage.getItem('filter')
@@ -1437,6 +1766,24 @@ onMounted(async () => {
   if(filterSelection) {
     selectedFilter.value = filterSelection
   }
+  
+  // Set the first task as lastOpenedTask since it opens by default
+  if (filteredTasks.value.length > 0) {
+    lastOpenedTask.value = filteredTasks.value[0]
+  }
+  
+  // Add keyboard event listener
+  window.addEventListener('keydown', handleKeyboardShortcut)
+})
+
+onBeforeUnmount(() => {
+  // Cleanup keyboard event listener
+  window.removeEventListener('keydown', handleKeyboardShortcut)
+  
+  // Cleanup sortable instances
+  Object.values(sortableInstances.value).forEach(instance => {
+    if (instance) instance.destroy()
+  })
 })
 
 watch(selectedFilter, (newVal, oldVal) => {
