@@ -83,7 +83,7 @@ app.get('/api', (req, res) => {
 app.post('/api/register', (req, res) => {
     res.set('content-type', 'application/json');
     
-    const { name, email, phone, password } = req.body;
+    const { name, email, password } = req.body;
     
     // Check if required fields exist
     if (!name || !email || !password) {
@@ -104,10 +104,10 @@ app.post('/api/register', (req, res) => {
         // Hash password and create user
         const salt = bcrypt.genSaltSync(saltRounds);
         const hash = bcrypt.hashSync(password, salt);
-        const sql = 'INSERT INTO users(user_name, user_email, user_phone, user_pw) VALUES(?, ?, ?, ?)';
+        const sql = 'INSERT INTO users(user_name, user_email, user_pw) VALUES(?, ?, ?)';
         
         try {
-            DB.run(sql, [name, email, phone || null, hash], function (err) {
+            DB.run(sql, [name, email, hash], function (err) {
                 if(err) {
                     console.log(err.message);
                     return res.status(500).json({ error: err.message });
@@ -129,7 +129,6 @@ app.post('/api/register', (req, res) => {
                         id: userId,
                         name: name,
                         email: email,
-                        phone: phone
                     }
                 });
             });
@@ -305,7 +304,35 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
                 priority: row.priority
             }));
             
-            res.status(200).json({ tasks });
+            // Get subtasks for each task
+            const subtasksSql = 'SELECT * FROM subtasks WHERE task_id = ? ORDER BY subtask_id ASC';
+            let completedTasks = 0;
+            
+            tasks.forEach((task, index) => {
+                DB.all(subtasksSql, [task.id], (err, subtaskRows) => {
+                    if (err) {
+                        console.log('Subtasks fetch error:', err.message);
+                    } else {
+                        task.subtasks = subtaskRows.map(sub => ({
+                            id: sub.subtask_id,
+                            taskId: sub.task_id,
+                            title: sub.title,
+                            complete: sub.complete === 1,
+                            createdAt: sub.created_at
+                        }));
+                    }
+                    
+                    completedTasks++;
+                    if (completedTasks === tasks.length) {
+                        res.status(200).json({ tasks });
+                    }
+                });
+            });
+            
+            // If no tasks, return immediately
+            if (tasks.length === 0) {
+                res.status(200).json({ tasks });
+            }
         });
     } catch (err) {
         console.log(err.message);
@@ -353,7 +380,8 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
     res.set('content-type', 'application/json');
     
     const taskId = req.params.id;
-    const { title, description, dueDate, complete } = req.body;
+    const { title, description, dueDate, complete, priority } = req.body;
+    console.log('PRIORITY FROM PUT REQUEST ON API/TASKS/:ID')
     
     // First, verify the task belongs to the user
     const checkSql = 'SELECT * FROM tasks WHERE task_id = ? AND user_id = ?';
@@ -371,7 +399,7 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
             
             // Update the task
             const updateSql = `UPDATE tasks 
-                               SET title = ?, description = ?, dueDate = ?, complete = ? 
+                               SET title = ?, description = ?, dueDate = ?, complete = ? , priority = ?
                                WHERE task_id = ?`;
             
             const completeValue = complete ? 1 : 0;
@@ -381,6 +409,7 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
                 description !== undefined ? description : row.description,
                 dueDate !== undefined ? dueDate : row.dueDate,
                 completeValue,
+                priority,
                 taskId
             ], function(err) {
                 if (err) {
@@ -430,6 +459,142 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
                 
                 res.status(200).json({ 
                     message: 'Task deleted successfully'
+                });
+            });
+        });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Create subtask for a task (protected route)
+app.post('/api/tasks/:taskId/subtasks', authenticateToken, (req, res) => {
+    res.set('content-type', 'application/json');
+    
+    const { taskId } = req.params;
+    const { title } = req.body;
+    
+    if (!title) {
+        return res.status(400).json({ error: 'Subtask title is required' });
+    }
+    
+    // Verify the task belongs to the user
+    const checkSql = 'SELECT * FROM tasks WHERE task_id = ? AND user_id = ?';
+    
+    try {
+        DB.get(checkSql, [taskId, req.user.userId], (err, row) => {
+            if (err) {
+                console.log(err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            if (!row) {
+                return res.status(404).json({ error: 'Task not found or unauthorized' });
+            }
+            
+            // Create the subtask
+            const sql = 'INSERT INTO subtasks(task_id, title, complete) VALUES(?, ?, 0)';
+            
+            DB.run(sql, [taskId, title], function(err) {
+                if (err) {
+                    console.log(err.message);
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                res.status(201).json({
+                    message: 'Subtask created successfully',
+                    subtaskId: this.lastID
+                });
+            });
+        });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Toggle subtask completion (protected route)
+app.put('/api/tasks/:taskId/subtasks/:subtaskId', authenticateToken, (req, res) => {
+    res.set('content-type', 'application/json');
+    
+    const { taskId, subtaskId } = req.params;
+    const { complete } = req.body;
+    
+    // Verify the task belongs to the user
+    const checkSql = 'SELECT * FROM tasks WHERE task_id = ? AND user_id = ?';
+    
+    try {
+        DB.get(checkSql, [taskId, req.user.userId], (err, row) => {
+            if (err) {
+                console.log(err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            if (!row) {
+                return res.status(404).json({ error: 'Task not found or unauthorized' });
+            }
+            
+            // Update the subtask
+            const updateSql = 'UPDATE subtasks SET complete = ? WHERE subtask_id = ? AND task_id = ?';
+            const completeValue = complete ? 1 : 0;
+            
+            DB.run(updateSql, [completeValue, subtaskId, taskId], function(err) {
+                if (err) {
+                    console.log(err.message);
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                if (this.changes === 0) {
+                    return res.status(404).json({ error: 'Subtask not found' });
+                }
+                
+                res.status(200).json({
+                    message: 'Subtask updated successfully'
+                });
+            });
+        });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete subtask (protected route)
+app.delete('/api/tasks/:taskId/subtasks/:subtaskId', authenticateToken, (req, res) => {
+    res.set('content-type', 'application/json');
+    
+    const { taskId, subtaskId } = req.params;
+    
+    // Verify the task belongs to the user
+    const checkSql = 'SELECT * FROM tasks WHERE task_id = ? AND user_id = ?';
+    
+    try {
+        DB.get(checkSql, [taskId, req.user.userId], (err, row) => {
+            if (err) {
+                console.log(err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            if (!row) {
+                return res.status(404).json({ error: 'Task not found or unauthorized' });
+            }
+            
+            // Delete the subtask
+            const deleteSql = 'DELETE FROM subtasks WHERE subtask_id = ? AND task_id = ?';
+            
+            DB.run(deleteSql, [subtaskId, taskId], function(err) {
+                if (err) {
+                    console.log(err.message);
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                if (this.changes === 0) {
+                    return res.status(404).json({ error: 'Subtask not found' });
+                }
+                
+                res.status(200).json({
+                    message: 'Subtask deleted successfully'
                 });
             });
         });

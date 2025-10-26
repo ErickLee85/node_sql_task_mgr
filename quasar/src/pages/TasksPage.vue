@@ -35,8 +35,13 @@
 
 
     <div class="container">
-    <div style="margin-block:10px; display: flex; justify-content: space-between; align-items: center;" v-if="tasks.size > 0">
-      <span>Total: {{ filteredTasks.length }}</span>
+    <div style="margin-block:10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;" v-if="tasks.size > 0">
+        <q-chip>
+        <q-avatar color="teal" text-color="white">{{ filteredTasks.length }}</q-avatar>
+        Tasks
+      </q-chip>
+    
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <q-select
                 v-model="selectedFilter"
                 :options="filterOptions"
@@ -55,15 +60,34 @@
                     <q-icon name="filter_alt" />
                   </template>
               </q-select>
+              <q-select
+                v-model="selectedSort"
+                :options="sortOptions"
+                label="Sort By"
+                dense
+                outlined
+                emit-value
+                map-options
+                style="width:150px;"
+                color="teal"
+                :bg-color="$q.dark.isActive ? 'bg-black' : 'bg-white'"
+                :dark="$q.dark.isActive"
+                :style="$q.dark.isActive ? 'background:black;' : 'background:white;'"
+              >
+                  <template v-slot:prepend>
+                    <q-icon name="sort" />
+                  </template>
+              </q-select>
+      </div>
     </div>
     <q-card v-if="filteredTasks.length > 0" bordered class="shadow-12 custom-card" :class="$q.dark.isActive ? 'shadow-0' : ''">
       <q-list  bordered>
         <template v-for="(task, index) in filteredTasks" :key="task.id">
           <q-expansion-item
             :class="{ 'task-active': task.isActive }"
-            :default-opened="index === 0"
             @before-show="playClickSound"
             @before-hide="playClickSound"
+            :default-opened="index === 0"
           >
             <template v-slot:header>
               <q-item-section avatar>
@@ -80,12 +104,12 @@
                   class="text-weight-bold text-h5" 
                   :class="{ 'text-strike text-grey-6': task.complete }"
                 >
-                  {{ task.title }}
-                    <q-icon :name="taskFlag(task.priority)" :color="taskFlagColor(task.priority)" size="sm">
+                   <q-icon :name="taskFlag(task.priority)" :color="taskFlagColor(task.priority)" size="sm" style="margin-right: 10px;">
                         <q-tooltip>
                           {{ task.priority }} Priority
                         </q-tooltip>
                       </q-icon>
+                  {{ task.title }}
                 </q-item-label>
                 <q-item-label caption v-if="task.dueDate" class="text-red-8">
                   Due: {{ formatDate(task.dueDate) }}
@@ -116,7 +140,14 @@
                         </q-item-section>
                       </q-item>
                       
-                    
+                      <q-item clickable v-close-popup @click="openSubtaskDialog(task)">
+                        <q-item-section avatar>
+                          <q-icon name="add_task" color="teal" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Add Subtask</q-item-label>
+                        </q-item-section>
+                      </q-item>
                       
                       <q-item clickable v-close-popup @click="openEditDialog(task)">
                         <q-item-section avatar>
@@ -145,12 +176,51 @@
             <q-card v-if="task.description" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-2'">
               <q-card-section>
                 <div class="text-subtitle2 text-grey-7 q-mb-sm">Description</div>
-                <div style="padding:5px;">{{ task.description }}</div>
+                <div style="padding:5px; font-size: 1.1rem;">{{ task.description }}</div>
               </q-card-section>
             </q-card>
-            <q-card v-else>
-              <q-card-section class="text-grey-6 text-italic">
-                No description provided
+            <q-card v-else  :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-2'">
+              <q-card-section class="text-grey-6 text-italic" >
+                <div style="padding:5px;">
+                  No description provided
+                </div>
+              </q-card-section>
+            </q-card>
+
+            <!-- Subtasks Section -->
+            <q-card v-if="task.subtasks && task.subtasks.length > 0" :class="$q.dark.isActive ? 'bg-black q-mt-sm' : 'bg-grey-1 q-mt-sm'" style="border-top: 1px solid red; margin-top: -10px;">
+              <q-card-section>
+                <div class="text-subtitle2 text-grey-7 q-mb-sm">Subtasks ({{ task.subtasks.filter(s => s.complete).length }}/{{ task.subtasks.length }})</div>
+                <q-list dense>
+                  <q-item tag="label" v-for="subtask in task.subtasks" :key="subtask.id" class="q-px-none" style="margin-left: 10px;" v-ripple>
+                    <q-item-section avatar>
+                      <q-checkbox 
+                        :model-value="subtask.complete" 
+                        @update:model-value="toggleSubtask(task.id, subtask.id, $event)"
+                        color="teal"
+                        size="sm"
+                      />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label :class="{ 'text-strike text-grey-6': subtask.complete }">
+                        {{ subtask.title }}
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        size="md"
+                        icon="delete"
+                        color="negative"
+                        @click="deleteSubtask(task.id, subtask.id)"
+                      >
+                        <q-tooltip>Delete subtask</q-tooltip>
+                      </q-btn>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
               </q-card-section>
             </q-card>
           </q-expansion-item>
@@ -239,6 +309,53 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- Add Subtask Dialog -->
+    <q-dialog v-model="showSubtaskDialog" backdrop-filter="blur(5px)">
+      <q-card style="min-width: 350px" :class="$q.dark.isActive ? 'bg-black shadow-10' : 'bg-white shadow-10'">
+        <q-card-section class="flex justify-between items-center">
+          <div class="text-h6">Add Subtask</div>
+          <q-btn round flat icon="close" @click="closeSubtaskDialog" />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-form @submit="createSubtask" class="q-gutter-md">
+            <q-input
+              v-model="newSubtask.title"
+              label="Subtask Title"
+              filled
+              dense
+              color="teal"
+              autofocus
+              autogrow
+              @keydown.enter="createSubtask"
+            />
+
+            <q-separator />
+            <div class="row justify-end">
+              <q-btn
+                label="Cancel"
+                flat
+                color="grey-7"
+                @click="closeSubtaskDialog"
+                style="margin-right:5px;"
+              />
+              <q-btn
+                label="Create"
+                type="submit"
+                color="teal"
+                glossy
+                :loading="creatingSubtask"
+              >
+              <template #loading>
+                <q-spinner-pie />
+              </template>
+              </q-btn>
+            </div>
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -270,6 +387,14 @@ const editMode = ref(false)
 const searchingTasks = ref(false)
 const editingTaskId = ref(null)
 const inputFocused = ref(false)
+
+// Subtask refs
+const showSubtaskDialog = ref(false)
+const creatingSubtask = ref(false)
+const currentTaskForSubtask = ref(null)
+const newSubtask = ref({
+  title: ''
+})
 
 const items = ref([
   1,2,3,4,5,6,7,8,9,10
@@ -331,14 +456,17 @@ const filterOptions = [
   { label: 'Pending', value: 'pending' },
   { label: 'Overdue', value: 'overdue' },
   { label: 'Due Today', value: 'today' },
-  { label: 'Due This Week', value: 'week' }
+  { label: 'Due This Week', value: 'week' },
+  { label: 'Low Priority', value: 'low' },
+  { label: 'Medium Priority', value: 'medium' },
+  { label: 'High Priority', value: 'high' }
 ]
 
 const sortOptions = [
   { label: 'Newest First', value: 'newest' },
   { label: 'Oldest First', value: 'oldest' },
-  { label: 'Due Date (Earliest)', value: 'due_asc' },
-  { label: 'Due Date (Latest)', value: 'due_desc' },
+  { label: 'Due Date (Ascending)', value: 'due_asc' },
+  { label: 'Due Date (Descending)', value: 'due_desc' },
   { label: 'Alphabetical', value: 'alpha' },
   { label: 'Completed First', value: 'completed_first' },
   { label: 'Pending First', value: 'pending_first' }
@@ -377,7 +505,8 @@ const taskFlagColor = (flag) => {
   return flagColor
 }
 
-function celebrate() {
+function celebrate(task) {
+  task.complete = !task.complete
   if(confetti) {
     confetti({
       particleCount: 100,
@@ -440,6 +569,19 @@ const filteredTasks = computed(() => {
         const dueDate = new Date(year, month - 1, day)
         return dueDate >= today && dueDate <= weekFromNow
       })
+      localStorage.setItem('filter', selectedFilter.value)
+      break
+    case 'low':
+      filtered = filtered.filter(task => task.priority === 'Low')
+      localStorage.setItem('filter', selectedFilter.value)
+      break
+    case 'medium':
+      filtered = filtered.filter(task => task.priority === 'Medium')
+      localStorage.setItem('filter', selectedFilter.value)
+      break
+    case 'high':
+      filtered = filtered.filter(task => task.priority === 'High')
+      localStorage.setItem('filter', selectedFilter.value)
       break
   }
   
@@ -482,16 +624,6 @@ const filteredTasks = computed(() => {
         return a.complete ? 1 : -1
       })
       break
-  }
-  
-  // Default sort by due date (earliest first)
-  if (selectedSort.value === 'newest') {
-    filtered.sort((a, b) => {
-      if (!a.dueDate && !b.dueDate) return b.id - a.id
-      if (!a.dueDate) return 1
-      if (!b.dueDate) return -1
-      return a.dueDate.localeCompare(b.dueDate)
-    })
   }
    
   return filtered
@@ -564,9 +696,16 @@ const createTask = async () => {
     if (!response.ok) {
       throw new Error(data.error || 'Failed to create task')
     }
+    tasks.value.add({
+      id: data.taskId,
+      title: newTask.value.title,
+      description: newTask.value.description,
+      dueDate: newTask.value.dueDate,
+      complete: false,
+      priority: newTask.value.priority
+    })
     closeDialog()
-    fetchTasks()
-
+    
   } catch (err) {
     $q.notify({
       type: 'negative',
@@ -608,6 +747,12 @@ const updateTask = async () => {
   try {
     // Find the current task to preserve its complete status
     const currentTask = Array.from(tasks.value).find(t => t.id === editingTaskId.value)
+    const oldTask = currentTask
+    currentTask.title = newTask.value.title
+    currentTask.description = newTask.value.description
+    currentTask.dueDate = newTask.value.dueDate
+    currentTask.complete = currentTask.complete || false
+    currentTask.priority = newTask.value.priority
     
     const response = await fetchAPI(`/api/tasks/${editingTaskId.value}`, {
       method: 'PUT',
@@ -615,18 +760,25 @@ const updateTask = async () => {
         title: newTask.value.title,
         description: newTask.value.description,
         dueDate: newTask.value.dueDate,
-        complete: currentTask?.complete || false
+        complete: currentTask?.complete || false,
+        priority: newTask.value.priority
       })
     })
 
     const data = await response.json()
 
     if (!response.ok) {
+      currentTask.title = oldTask.title
+      currentTask.description = oldTask.description
+      currentTask.dueDate = oldTask.dueDate
+      currentTask.complete = oldTask.complete
+      currentTask.priority = oldTask.priority
+      
       throw new Error(data.error || 'Failed to update task')
     }
-
+   
     closeDialog()
-    fetchTasks()
+    
 
   } catch (err) {
     $q.notify({
@@ -644,7 +796,197 @@ const toggleActiveStatus = (task) => {
   task.isActive = !task.isActive
 }
 
+// Subtask functions
+const openSubtaskDialog = (task) => {
+  currentTaskForSubtask.value = task
+  newSubtask.value.title = ''
+  showSubtaskDialog.value = true
+}
+
+const closeSubtaskDialog = () => {
+  showSubtaskDialog.value = false
+  currentTaskForSubtask.value = null
+  newSubtask.value.title = ''
+}
+
+const createSubtask = async () => {
+  if (!newSubtask.value.title.trim()) {
+    toast.warning('Please enter a subtask title')
+    return
+  }
+
+  creatingSubtask.value = true
+  
+  try {
+    const response = await fetchAPI(`/api/tasks/${currentTaskForSubtask.value.id}/subtasks`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: newSubtask.value.title
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create subtask')
+    }
+
+    toast.success('Subtask created successfully!')
+    newSubtask.value.title = ''
+    fetchTasks()
+
+  } catch (err) {
+    toast.error(err.message)
+  } finally {
+    creatingSubtask.value = false
+  }
+}
+
+const toggleSubtask = async (taskId, subtaskId, complete) => {
+  const foundTask = Array.from(tasks.value).find((task) => task.id === taskId)
+  const foundSubTask = foundTask.subtasks.find((task) => task.id === subtaskId)
+  if(foundSubTask) {
+    foundSubTask.complete = !foundSubTask.complete
+  }
+  console.log('FOUND TASK: ', foundTask)
+  console.log('FOUND SUBTASK: ', foundSubTask)
+  try {
+    const response = await fetchAPI(`/api/tasks/${taskId}/subtasks/${subtaskId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        complete: complete
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      foundSubTask.complete = !foundSubTask.complete
+      throw new Error(data.error || 'Failed to update subtask')
+    }
+
+  } catch (err) {
+    toast.error(err.message)
+  }
+}
+
+const deleteSubtask = async (taskId, subtaskId) => {
+  $q.dialog({
+    title: 'Confirm Delete',
+    message: 'Are you sure you want to delete this subtask?',
+    cancel: true,
+    persistent: true,
+    color: 'red'
+  }).onOk(async () => {
+    try {
+      const response = await fetchAPI(`/api/tasks/${taskId}/subtasks/${subtaskId}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete subtask')
+      }
+
+      toast.success('Subtask deleted successfully!')
+      fetchTasks()
+
+    } catch (err) {
+      toast.error(err.message)
+    }
+  })
+}
+
 const toggleTask = async (task) => {
+  // Check if task is being marked as complete and has incomplete subtasks
+  if (!task.complete && task.subtasks && task.subtasks.length > 0) {
+    const incompleteSubtasks = task.subtasks.filter(s => !s.complete)
+    
+    if (incompleteSubtasks.length > 0) {
+      // Show dialog asking user what to do
+      $q.dialog({
+        title: 'Incomplete Subtasks',
+        message: `This task has ${incompleteSubtasks.length} incomplete subtask(s). Do you want to mark the task as complete?`,
+        cancel: {
+          label: 'Cancel',
+          color: 'grey',
+          flat: true
+        },
+        ok: {
+          label: 'Mark Complete',
+          color: 'teal'
+        },
+        options: {
+          type: 'checkbox',
+          model: [],
+          items: [
+            { label: 'Also complete all subtasks', value: 'completeSubtasks', color: 'teal' }
+          ]
+        },
+        persistent: true
+      }).onOk(async (data) => {
+        // If user checked the option, complete all subtasks first
+        if (data && data.includes('completeSubtasks')) {
+          // Update all subtasks to complete
+          for (const subtask of incompleteSubtasks) {
+            try {
+              await fetchAPI(`/api/tasks/${task.id}/subtasks/${subtask.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ complete: true })
+              })
+              subtask.complete = true
+            } catch (err) {
+              console.error('Failed to complete subtask:', err)
+            }
+          }
+        }
+        
+        // Now mark task as complete and update
+        task.complete = false
+        celebrate(task)
+        
+        // Update the parent task
+        try {
+          const response = await fetchAPI(`/api/tasks/${task.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              title: task.title,
+              description: task.description,
+              dueDate: task.dueDate,
+              complete: task.complete,
+              priority: task.priority
+            })
+          })
+          
+          const responseData = await response.json()
+          
+          if (!response.ok) {
+            throw new Error(responseData.error || 'Failed to update task')
+          }
+        } catch (err) {
+          fetchTasks()
+          $q.notify({
+            type: 'negative',
+            message: err.message,
+            position: 'top'
+          })
+        }
+      }).onCancel(() => {
+        // Do nothing, checkbox stays unchecked
+      })
+      
+      return // Exit early, don't proceed with normal toggle
+    }
+  }
+  
+  // Normal toggle logic (no incomplete subtasks or task being uncompleted)
+  if(task.complete === false) {
+    celebrate(task)
+  } else {
+    task.complete = !task.complete
+  }
+
   try {
     const response = await fetchAPI(`/api/tasks/${task.id}`, {
       method: 'PUT',
@@ -652,21 +994,18 @@ const toggleTask = async (task) => {
         title: task.title,
         description: task.description,
         dueDate: task.dueDate,
-        complete: !task.complete
+        complete: task.complete,
+        priority: task.priority
       })
     })
-    if(task.complete === false) {
-      celebrate()
-    }
 
     const data = await response.json()
 
     if (!response.ok) {
       throw new Error(data.error || 'Failed to update task')
     }
-    // Refresh tasks list
-    fetchTasks();
   } catch (err) {
+    fetchTasks()
     $q.notify({
       type: 'negative',
       message: err.message,
@@ -683,6 +1022,8 @@ const deleteTask = async (task) => {
     persistent: true,
     color: 'red'
   }).onOk(async () => {
+    const set = new Set(Array.from(tasks.value).filter(obj => obj.id !== task.id))
+    tasks.value = set;
     try {
       const response = await fetchAPI(`/api/tasks/${task.id}`, {
         method: 'DELETE'
@@ -695,9 +1036,12 @@ const deleteTask = async (task) => {
       }
 
       // Refresh tasks list
-      fetchTasks()
+      toast.success(`${task.title} deleted successfully`)
+   
+      // fetchTasks()
 
     } catch (err) {
+      fetchTasks()
       $q.notify({
         type: 'negative',
         message: err.message,
@@ -734,12 +1078,65 @@ watch(selectedFilter, (newVal, oldVal) => {
   if(oldVal === newVal) {
     return
   } else {
-    localStorage.setItem('filter', newVal)
+    // Check if the new filter would result in 0 tasks
+    let testFiltered = Array.from(tasks.value)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     
-    // Show toast if filter results in no tasks
-    if (tasks.value.size > 0 && filteredTasks.value.length === 0) {
+    // Apply the same filter logic to test
+    switch (newVal) {
+      case 'completed':
+        testFiltered = testFiltered.filter(task => task.complete)
+        break
+      case 'pending':
+        testFiltered = testFiltered.filter(task => !task.complete)
+        break
+      case 'overdue':
+        testFiltered = testFiltered.filter(task => {
+          if (!task.dueDate || task.complete) return false
+          const [year, month, day] = task.dueDate.split('-')
+          const dueDate = new Date(year, month - 1, day)
+          return dueDate < today
+        })
+        break
+      case 'today':
+        testFiltered = testFiltered.filter(task => {
+          if (!task.dueDate) return false
+          const [year, month, day] = task.dueDate.split('-')
+          const dueDate = new Date(year, month - 1, day)
+          return dueDate.getTime() === today.getTime()
+        })
+        break
+      case 'week':
+        const weekFromNow = new Date()
+        weekFromNow.setDate(today.getDate() + 7)
+        testFiltered = testFiltered.filter(task => {
+          if (!task.dueDate) return false
+          const [year, month, day] = task.dueDate.split('-')
+          const dueDate = new Date(year, month - 1, day)
+          return dueDate >= today && dueDate <= weekFromNow
+        })
+        break
+      case 'low':
+        testFiltered = testFiltered.filter(task => task.priority === 'Low')
+        break
+      case 'medium':
+        testFiltered = testFiltered.filter(task => task.priority === 'Medium')
+        break
+      case 'high':
+        testFiltered = testFiltered.filter(task => task.priority === 'High')
+        break
+    }
+    
+    // If no results, revert to previous filter and show toast
+    if (tasks.value.size > 0 && testFiltered.length === 0) {
       const filterLabel = filterOptions.find(opt => opt.value === newVal)?.label || newVal
-      toast.info(`No ${filterLabel} tasks found. `)
+      toast.info(`No ${filterLabel} tasks found.`)
+      // Revert to the old filter value
+      selectedFilter.value = oldVal
+    } else {
+      // Update localStorage only if filter is applied successfully
+      localStorage.setItem('filter', newVal)
     }
   }
 })

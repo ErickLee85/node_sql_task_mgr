@@ -40,7 +40,12 @@
 
         <q-space />
 
-        <div style="display:flex; gap:5px;">
+        <div style="display:flex; align-items: center; gap:5px;">
+          <q-icon v-if="showBatteryIcon" name="battery_charging_full"  :color="$q.dark.isActive ? 'white' : 'grey-7'" size="md" style="transform: rotate(90deg); margin-right: 10px;">
+            <q-tooltip>
+              {{ batteryStatus }}
+            </q-tooltip>
+            </q-icon> 
           <q-btn
             size="md"
             dense
@@ -199,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { fetchAPI } from 'src/utils/api'
@@ -339,6 +344,41 @@ const deleteAccount = async () => {
     deletingAccount.value = false
   }
 }
+
+const batteryStatus = ref('')
+
+const updateBatteryStatus = (battery) => {
+  if(battery.charging) {
+    batteryStatus.value = `Charging | ${battery.level * 100}%`
+  } else {
+    batteryStatus.value = `${battery.level * 100}% Remaining`
+  }
+}
+
+const showBatteryIcon = ref(false)
+
+onMounted(() => {
+  const userAgent = navigator.userAgent;
+  if(userAgent.includes("Chrome") || userAgent.includes("Safari")) {
+    showBatteryIcon.value = true;
+    navigator.getBattery()
+  .then((battery) => {
+    // Set initial battery status
+    updateBatteryStatus(battery)
+    
+    // Listen for battery level changes
+    battery.addEventListener('levelchange', () => {
+      updateBatteryStatus(battery)
+    })
+    
+    // Listen for charging state changes
+    battery.addEventListener('chargingchange', () => {
+      updateBatteryStatus(battery)
+    })
+  })
+  }
+  
+})
 </script>
 
 <style>

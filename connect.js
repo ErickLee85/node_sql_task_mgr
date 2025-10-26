@@ -34,7 +34,6 @@ function initializeDatabase() {
         user_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_name TEXT NOT NULL,
         user_email TEXT NOT NULL UNIQUE,
-        user_phone INTEGER,
         user_pw TEXT NOT NULL
     )`;
 
@@ -64,6 +63,24 @@ function initializeDatabase() {
             return;
         }
         console.log('Tasks table ready')
+    });
+
+    // Create subtasks table
+    let subtasksSql = `CREATE TABLE IF NOT EXISTS subtasks(
+        subtask_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        complete INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+    )`;
+
+    DB.run(subtasksSql, [], (err) => {
+        if(err) {
+            console.log('Subtasks table error:', err.message)
+            return;
+        }
+        console.log('Subtasks table ready')
     });
 }
 

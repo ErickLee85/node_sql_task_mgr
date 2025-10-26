@@ -32,7 +32,7 @@
             </template>
           </q-input>
 
-          <q-input
+          <!-- <q-input
             v-model="form.phone"
             label="Phone (optional)"
             filled
@@ -44,7 +44,7 @@
             <template v-slot:prepend>
               <q-icon name="phone" />
             </template>
-          </q-input>
+          </q-input> -->
 
           <q-input
             v-model="form.password"
@@ -118,7 +118,6 @@ const $q = useQuasar()
 const form = ref({
   name: '',
   email: '',
-  phone: '',
   password: ''
 })
 
@@ -163,7 +162,6 @@ const onSubmit = async () => {
       body: JSON.stringify({
         name: form.value.name,
         email: form.value.email,
-        phone: form.value.phone,
         password: form.value.password
       })
     })
