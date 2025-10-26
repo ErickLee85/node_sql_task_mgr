@@ -17,6 +17,7 @@
     "canvas-confetti": "^1.9.3",
     "pinia": "^3.0.1",
     "quasar": "^2.16.0",
+    "sortablejs": "^1.15.6",
     "vue": "^3.5.22",
     "vue-router": "^4.0.0",
     "vue-toastification": "^2.0.0-rc.5"

@@ -531,7 +531,7 @@ app.put('/api/tasks/:taskId/subtasks/:subtaskId', authenticateToken, (req, res) 
     res.set('content-type', 'application/json');
     
     const { taskId, subtaskId } = req.params;
-    const { complete, title, dependsOn } = req.body;
+    const { complete, title, dependsOn, orderId } = req.body;
     
     // Verify the task belongs to the user
     const checkSql = 'SELECT * FROM tasks WHERE task_id = ? AND user_id = ?';
@@ -564,6 +564,11 @@ app.put('/api/tasks/:taskId/subtasks/:subtaskId', authenticateToken, (req, res) 
             if (dependsOn !== undefined) {
                 updateFields.push('depends_on = ?');
                 updateValues.push(dependsOn);
+            }
+            
+            if (orderId !== undefined) {
+                updateFields.push('order_id = ?');
+                updateValues.push(orderId);
             }
             
             if (updateFields.length === 0) {
