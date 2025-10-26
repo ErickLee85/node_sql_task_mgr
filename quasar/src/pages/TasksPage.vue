@@ -288,14 +288,14 @@
                   </div>
                 </div>
                 <q-list dense :ref="el => setSubtaskListRef(task.id, el)" class="subtask-sortable">
-                  <q-item v-for="subtask in task.subtasks" :key="subtask.id" :data-id="subtask.id" class="q-px-none subtask-item" style="" v-ripple>
+                  <q-item tag="label" v-for="subtask in task.subtasks" :key="subtask.id" :data-id="subtask.id" class="q-px-none subtask-item" style="align-items: center;" v-ripple>
                     <q-item-section avatar style="min-width: 30px; cursor: grab;" class="drag-handle">
                       <q-icon name="drag_indicator" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" size="sm" />
                     </q-item-section>
-                    <q-item-section avatar style="min-width: 20px;">
+                    <!-- <q-item-section avatar style="min-width: 20px;">
                       {{ subtask.orderId + 1 }}.
-                    </q-item-section>
-                    <q-item-section avatar>
+                    </q-item-section> -->
+                    <q-item-section avatar style="min-width: 40px;">
                       <q-checkbox 
                         :model-value="subtask.complete" 
                         @update:model-value="toggleSubtask(task.id, subtask.id, $event)"
@@ -1609,13 +1609,7 @@ const clearFilters = () => {
 
 // Keyboard shortcuts handler
 const handleKeyboardShortcut = (event) => {
-  // Check for our shortcuts with Shift key
-  if (event.shiftKey && (event.key === 'A' || event.key === 'S' || event.key === 'D' || event.key === 'F' || event.key === 'C' || event.key === 'X' || event.key === 'Z')) {
-    event.preventDefault()
-    event.stopPropagation()
-  }
-
-  // Don't trigger shortcuts when typing in inputs
+  // Don't trigger shortcuts when typing in inputs - check this FIRST
   if (inputFocused.value || event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
     // Except for Escape key
     if (event.key === 'Escape') {
@@ -1628,6 +1622,12 @@ const handleKeyboardShortcut = (event) => {
       return
     }
     return
+  }
+
+  // NOW check for our shortcuts with Shift key and prevent default
+  if (event.shiftKey && (event.key === 'A' || event.key === 'S' || event.key === 'D' || event.key === 'F' || event.key === 'C' || event.key === 'X' || event.key === 'Z')) {
+    event.preventDefault()
+    event.stopPropagation()
   }
 
   // Shift + A - Add Task
