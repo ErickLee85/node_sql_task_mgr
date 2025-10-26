@@ -305,7 +305,7 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
             }));
             
             // Get subtasks for each task
-            const subtasksSql = 'SELECT * FROM subtasks WHERE task_id = ? ORDER BY subtask_id ASC';
+            const subtasksSql = 'SELECT * FROM subtasks WHERE task_id = ? ORDER BY order_id ASC, subtask_id ASC';
             let completedTasks = 0;
             
             tasks.forEach((task, index) => {
@@ -318,6 +318,8 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
                             taskId: sub.task_id,
                             title: sub.title,
                             complete: sub.complete === 1,
+                            orderId: sub.order_id,
+                            dependsOn: sub.depends_on,
                             createdAt: sub.created_at
                         }));
                     }
@@ -473,7 +475,7 @@ app.post('/api/tasks/:taskId/subtasks', authenticateToken, (req, res) => {
     res.set('content-type', 'application/json');
     
     const { taskId } = req.params;
-    const { title } = req.body;
+    const { title, orderId, dependsOn } = req.body;
     
     if (!title) {
         return res.status(400).json({ error: 'Subtask title is required' });
@@ -493,18 +495,28 @@ app.post('/api/tasks/:taskId/subtasks', authenticateToken, (req, res) => {
                 return res.status(404).json({ error: 'Task not found or unauthorized' });
             }
             
-            // Create the subtask
-            const sql = 'INSERT INTO subtasks(task_id, title, complete) VALUES(?, ?, 0)';
-            
-            DB.run(sql, [taskId, title], function(err) {
+            // Get the count of existing subtasks to determine order_id
+            DB.get('SELECT COUNT(*) as count FROM subtasks WHERE task_id = ?', [taskId], (err, countRow) => {
                 if (err) {
                     console.log(err.message);
                     return res.status(500).json({ error: err.message });
                 }
                 
-                res.status(201).json({
-                    message: 'Subtask created successfully',
-                    subtaskId: this.lastID
+                const nextOrderId = orderId !== undefined ? orderId : countRow.count;
+                
+                // Create the subtask
+                const sql = 'INSERT INTO subtasks(task_id, title, complete, order_id, depends_on) VALUES(?, ?, 0, ?, ?)';
+                
+                DB.run(sql, [taskId, title, nextOrderId, dependsOn || null], function(err) {
+                    if (err) {
+                        console.log(err.message);
+                        return res.status(500).json({ error: err.message });
+                    }
+                    
+                    res.status(201).json({
+                        message: 'Subtask created successfully',
+                        subtaskId: this.lastID
+                    });
                 });
             });
         });
@@ -519,7 +531,7 @@ app.put('/api/tasks/:taskId/subtasks/:subtaskId', authenticateToken, (req, res) 
     res.set('content-type', 'application/json');
     
     const { taskId, subtaskId } = req.params;
-    const { complete } = req.body;
+    const { complete, title, dependsOn } = req.body;
     
     // Verify the task belongs to the user
     const checkSql = 'SELECT * FROM tasks WHERE task_id = ? AND user_id = ?';
@@ -535,11 +547,34 @@ app.put('/api/tasks/:taskId/subtasks/:subtaskId', authenticateToken, (req, res) 
                 return res.status(404).json({ error: 'Task not found or unauthorized' });
             }
             
-            // Update the subtask
-            const updateSql = 'UPDATE subtasks SET complete = ? WHERE subtask_id = ? AND task_id = ?';
-            const completeValue = complete ? 1 : 0;
+            // Build update SQL dynamically based on what fields are provided
+            let updateFields = [];
+            let updateValues = [];
             
-            DB.run(updateSql, [completeValue, subtaskId, taskId], function(err) {
+            if (complete !== undefined) {
+                updateFields.push('complete = ?');
+                updateValues.push(complete ? 1 : 0);
+            }
+            
+            if (title !== undefined) {
+                updateFields.push('title = ?');
+                updateValues.push(title);
+            }
+            
+            if (dependsOn !== undefined) {
+                updateFields.push('depends_on = ?');
+                updateValues.push(dependsOn);
+            }
+            
+            if (updateFields.length === 0) {
+                return res.status(400).json({ error: 'No fields to update' });
+            }
+            
+            // Update the subtask
+            const updateSql = `UPDATE subtasks SET ${updateFields.join(', ')} WHERE subtask_id = ? AND task_id = ?`;
+            updateValues.push(subtaskId, taskId);
+            
+            DB.run(updateSql, updateValues, function(err) {
                 if (err) {
                     console.log(err.message);
                     return res.status(500).json({ error: err.message });

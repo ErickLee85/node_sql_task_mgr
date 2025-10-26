@@ -3,7 +3,7 @@
     <!-- Page-specific toolbar for search and add task -->
     <div style="min-height: 60px; max-height: 60px;" class="row items-center q-pa-sm shadow-1" :class="$q.dark.isActive ? 'bg-black shadow-0' : 'bg-white'">
       <div class="col">
-        <div class="text-h6" style="margin-left: 10px; font-weight: 900;" :class="$q.dark.isActive ? 'text-white' : 'text-grey-8'">
+        <div class="text-h6" style="margin-left: 15px; font-weight: 900;" :class="$q.dark.isActive ? 'text-white' : 'text-grey-8'">
           Tasks
         </div>
       </div>
@@ -35,13 +35,13 @@
 
 
     <div class="container">
-    <div style="margin-block:10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;" v-if="tasks.size > 0">
+    <div style="margin-block:15px; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;" v-if="tasks.size > 0">
         <q-chip>
         <q-avatar color="teal" text-color="white">{{ filteredTasks.length }}</q-avatar>
-        Tasks
+        {{ filteredTasks.length > 1 ? 'Tasks' : 'Task' }}
       </q-chip>
     
-      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                 <q-select
                 v-model="selectedFilter"
                 :options="filterOptions"
@@ -104,7 +104,7 @@
                   class="text-weight-bold text-h5" 
                   :class="{ 'text-strike text-grey-6': task.complete }"
                 >
-                   <q-icon :name="taskFlag(task.priority)" :color="taskFlagColor(task.priority)" size="sm" style="margin-right: 10px;">
+                   <q-icon :name="taskFlag(task.priority)" :color="taskFlagColor(task.priority)" size="sm" style="margin-right: 15px;">
                         <q-tooltip>
                           {{ task.priority }} Priority
                         </q-tooltip>
@@ -188,36 +188,150 @@
             </q-card>
 
             <!-- Subtasks Section -->
-            <q-card v-if="task.subtasks && task.subtasks.length > 0" :class="$q.dark.isActive ? 'bg-black q-mt-sm' : 'bg-grey-1 q-mt-sm'" style="border-top: 1px solid red; margin-top: -10px;">
+            <q-card v-if="task.subtasks && task.subtasks.length > 0" :class="$q.dark.isActive ? 'bg-black q-mt-sm' : 'bg-grey-1 q-mt-sm'" style="border-top: 1px solid red; margin-top: -15px;">
               <q-card-section>
-                <div class="text-subtitle2 text-grey-7 q-mb-sm">Subtasks ({{ task.subtasks.filter(s => s.complete).length }}/{{ task.subtasks.length }})</div>
+                <div class="text-subtitle2 text-grey-7 q-mb-sm" style="padding-bottom:5px;display: flex; align-items: center; justify-content: space-between; gap: 8px;" :style="$q.dark.isActive ? 'border-bottom:1px solid gray;' : 'border-bottom:1px solid gainsboro;'">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>Subtasks</span>
+                    <q-toggle
+                      :model-value="task.subtasks.every(s => s.complete)"
+                      @update:model-value="toggleAllSubtasks(task, $event)"
+                      color="green"
+                    >
+                      <q-tooltip>{{ task.subtasks.every(s => s.complete) ? 'Mark all incomplete' : 'Complete all subtasks' }}</q-tooltip>
+                    </q-toggle>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="display: flex; align-items: center;">
+                      <div 
+                        :style="{
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          backgroundColor: '#10b981',
+                          border: '2px solid ' + ($q.dark.isActive ? '#000' : '#f5f5f5')
+                        }"
+                      ></div>
+                      <div 
+                        :style="{
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          backgroundColor: '#ef4444',
+                          marginLeft: '-5px',
+                          border: '2px solid ' + ($q.dark.isActive ? '#000' : '#f5f5f5')
+                        }"
+                      ></div>
+                      <div 
+                        :style="{
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          backgroundColor: '#f97316',
+                          marginLeft: '-5px',
+                          border: '2px solid ' + ($q.dark.isActive ? '#000' : '#f5f5f5')
+                        }"
+                      ></div>
+                      <div 
+                        :style="{
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          backgroundColor: '#9ca3af',
+                          marginLeft: '-5px',
+                          border: '2px solid ' + ($q.dark.isActive ? '#000' : '#f5f5f5')
+                        }"
+                      ></div>
+                      <div 
+                        :style="{
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          backgroundColor: '#d1d5db',
+                          marginLeft: '-5px',
+                          border: '2px solid ' + ($q.dark.isActive ? '#000' : '#f5f5f5')
+                        }"
+                      ></div>
+                      <div 
+                        :style="{
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          backgroundColor: '#ffffff',
+                          marginLeft: '-5px',
+                          border: '2px solid ' + ($q.dark.isActive ? '#000' : '#f5f5f5')
+                        }"
+                      ></div>
+                    </div>
+                    <span style="font-size: 0.9rem; font-weight: 500;">
+                      {{ task.subtasks.filter(s => s.complete).length }}/{{ task.subtasks.length }}
+                    </span>
+                  </div>
+                </div>
                 <q-list dense>
-                  <q-item tag="label" v-for="subtask in task.subtasks" :key="subtask.id" class="q-px-none" style="margin-left: 10px;" v-ripple>
+                  <q-item v-for="subtask in task.subtasks" :key="subtask.id" class="q-px-none" style="" v-ripple>
+                    <q-item-section avatar style="min-width: 20px;">
+                      {{ subtask.orderId + 1 }}.
+                    </q-item-section>
                     <q-item-section avatar>
                       <q-checkbox 
                         :model-value="subtask.complete" 
                         @update:model-value="toggleSubtask(task.id, subtask.id, $event)"
-                        color="teal"
+                        :disable="isSubtaskLocked(task, subtask)"
+                        color="green"
                         size="sm"
                       />
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label :class="{ 'text-strike text-grey-6': subtask.complete }">
+                      <q-item-label :class="{ 
+                        'text-strike text-grey-6': subtask.complete,
+                        'text-grey-5': isSubtaskLocked(task, subtask) && !subtask.complete
+                      }">
                         {{ subtask.title }}
+                        <q-icon v-if="subtask.dependsOn" name="link" size="xs" color="primary" class="q-ml-sm">
+                          <q-tooltip>
+                            Depends on: {{ getDependentSubtaskTitle(task, subtask.dependsOn) }}
+                          </q-tooltip>
+                        </q-icon>
+                      </q-item-label>
+                      <q-item-label v-if="isSubtaskLocked(task, subtask)" caption class="text-orange-8">
+                        <q-icon name="lock" size="xs" /> Complete "{{ getDependentSubtaskTitle(task, subtask.dependsOn) }}" first
                       </q-item-label>
                     </q-item-section>
                     <q-item-section side>
-                      <q-btn
+                      <q-btn-dropdown
+                        style="min-width:45px;"
+                        no-icon-animation
                         flat
                         dense
-                        round
-                        size="md"
-                        icon="delete"
-                        color="negative"
-                        @click="deleteSubtask(task.id, subtask.id)"
+                        dropdown-icon="more_horiz"
+                        size="sm"
+                        :color="$q.dark.isActive ? 'white' : 'grey-7'"
+                        @click.stop
+                        
                       >
-                        <q-tooltip>Delete subtask</q-tooltip>
-                      </q-btn>
+                        <q-list dense>
+                          <q-item clickable v-close-popup @click="editSubtask(task, subtask)">
+                            <q-item-section avatar>
+                              <q-icon name="edit" color="primary" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>Edit</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          
+                          <q-separator />
+                          
+                          <q-item clickable v-close-popup @click="deleteSubtask(task.id, subtask.id, true)">
+                            <q-item-section avatar>
+                              <q-icon name="delete" color="negative" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label class="text-negative">Delete</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-btn-dropdown>
                     </q-item-section>
                   </q-item>
                 </q-list>
@@ -312,14 +426,14 @@
 
     <!-- Add Subtask Dialog -->
     <q-dialog v-model="showSubtaskDialog" backdrop-filter="blur(5px)">
-      <q-card style="min-width: 350px" :class="$q.dark.isActive ? 'bg-black shadow-10' : 'bg-white shadow-10'">
+      <q-card style="min-width: 400px" :class="$q.dark.isActive ? 'bg-black shadow-10' : 'bg-white shadow-10'">
         <q-card-section class="flex justify-between items-center">
-          <div class="text-h6">Add Subtask</div>
+          <div class="text-h6">{{ editingSubtask ? 'Edit Subtask' : 'Add Subtask' }}</div>
           <q-btn round flat icon="close" @click="closeSubtaskDialog" />
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <q-form @submit="createSubtask" class="q-gutter-md">
+          <q-form @submit="editingSubtask ? updateSubtask() : createSubtask()" class="q-gutter-md">
             <q-input
               v-model="newSubtask.title"
               label="Subtask Title"
@@ -331,6 +445,26 @@
               @keydown.enter="createSubtask"
             />
 
+            <!-- Show dependency options if there are existing subtasks -->
+            <div v-if="currentTaskForSubtask?.subtasks?.length > 0">
+              <q-select
+                v-model="newSubtask.dependsOn"
+                :options="subtaskDependencyOptions"
+                label="Dependency (Optional)"
+                filled
+                dense
+                color="teal"
+                emit-value
+                map-options
+                clearable
+                hint="Select a subtask that must be completed first"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="link" />
+                </template>
+              </q-select>
+            </div>
+
             <q-separator />
             <div class="row justify-end">
               <q-btn
@@ -341,7 +475,7 @@
                 style="margin-right:5px;"
               />
               <q-btn
-                label="Create"
+                :label="editingSubtask ? 'Update' : 'Create'"
                 type="submit"
                 color="teal"
                 glossy
@@ -392,8 +526,20 @@ const inputFocused = ref(false)
 const showSubtaskDialog = ref(false)
 const creatingSubtask = ref(false)
 const currentTaskForSubtask = ref(null)
+const editingSubtask = ref(null)
 const newSubtask = ref({
-  title: ''
+  title: '',
+  dependsOn: null
+})
+
+// Computed property for subtask dependency options
+const subtaskDependencyOptions = computed(() => {
+  if (!currentTaskForSubtask.value?.subtasks) return []
+  
+  return currentTaskForSubtask.value.subtasks.map(sub => ({
+    label: sub.title,
+    value: sub.id
+  }))
 })
 
 const items = ref([
@@ -806,7 +952,55 @@ const openSubtaskDialog = (task) => {
 const closeSubtaskDialog = () => {
   showSubtaskDialog.value = false
   currentTaskForSubtask.value = null
+  editingSubtask.value = null
   newSubtask.value.title = ''
+  newSubtask.value.dependsOn = null
+}
+
+const editSubtask = (task, subtask) => {
+  currentTaskForSubtask.value = task
+  editingSubtask.value = subtask
+  newSubtask.value.title = subtask.title
+  newSubtask.value.dependsOn = subtask.dependsOn
+  showSubtaskDialog.value = true
+}
+
+const updateSubtask = async () => {
+  if (!newSubtask.value.title.trim()) {
+    toast.warning('Please enter a subtask title')
+    return
+  }
+
+  creatingSubtask.value = true
+  
+  try {
+    const response = await fetchAPI(`/api/tasks/${currentTaskForSubtask.value.id}/subtasks/${editingSubtask.value.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: newSubtask.value.title,
+        dependsOn: newSubtask.value.dependsOn || null
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update subtask')
+    }
+
+    // Optimistically update the UI
+    editingSubtask.value.title = newSubtask.value.title
+    editingSubtask.value.dependsOn = newSubtask.value.dependsOn
+    
+    toast.success('Subtask updated successfully!')
+    closeSubtaskDialog()
+    
+  } catch (err) {
+    toast.error(err.message)
+    fetchTasks() // Refresh on error to restore correct state
+  } finally {
+    creatingSubtask.value = false
+  }
 }
 
 const createSubtask = async () => {
@@ -821,7 +1015,8 @@ const createSubtask = async () => {
     const response = await fetchAPI(`/api/tasks/${currentTaskForSubtask.value.id}/subtasks`, {
       method: 'POST',
       body: JSON.stringify({
-        title: newSubtask.value.title
+        title: newSubtask.value.title,
+        dependsOn: newSubtask.value.dependsOn || null
       })
     })
 
@@ -831,12 +1026,30 @@ const createSubtask = async () => {
       throw new Error(data.error || 'Failed to create subtask')
     }
 
+    // Optimistically update the UI
+    const newSubtaskObj = {
+      id: data.subtaskId,
+      taskId: currentTaskForSubtask.value.id,
+      title: newSubtask.value.title,
+      complete: false,
+      orderId: currentTaskForSubtask.value.subtasks?.length || 0,
+      dependsOn: newSubtask.value.dependsOn || null,
+      createdAt: new Date().toISOString()
+    }
+    
+    // Add the new subtask to the current task
+    if (!currentTaskForSubtask.value.subtasks) {
+      currentTaskForSubtask.value.subtasks = []
+    }
+    currentTaskForSubtask.value.subtasks.push(newSubtaskObj)
+    
     toast.success('Subtask created successfully!')
     newSubtask.value.title = ''
-    fetchTasks()
-
+    newSubtask.value.dependsOn = null
   } catch (err) {
     toast.error(err.message)
+    // Only fetch tasks on error to restore correct state
+    fetchTasks()
   } finally {
     creatingSubtask.value = false
   }
@@ -845,6 +1058,14 @@ const createSubtask = async () => {
 const toggleSubtask = async (taskId, subtaskId, complete) => {
   const foundTask = Array.from(tasks.value).find((task) => task.id === taskId)
   const foundSubTask = foundTask.subtasks.find((task) => task.id === subtaskId)
+  
+  // Check if subtask is locked
+  if (isSubtaskLocked(foundTask, foundSubTask)) {
+    const dependentSubtask = foundTask.subtasks.find(s => s.id === foundSubTask.dependsOn)
+    toast.warning(`Please complete "${dependentSubtask?.title}" first`)
+    return
+  }
+  
   if(foundSubTask) {
     foundSubTask.complete = !foundSubTask.complete
   }
@@ -870,7 +1091,58 @@ const toggleSubtask = async (taskId, subtaskId, complete) => {
   }
 }
 
-const deleteSubtask = async (taskId, subtaskId) => {
+// Toggle all subtasks at once
+const toggleAllSubtasks = async (task, complete) => {
+  try {
+    // Update all subtasks
+    for (const subtask of task.subtasks) {
+      // Optimistically update UI
+      subtask.complete = complete
+      
+      // Send update to server
+      await fetchAPI(`/api/tasks/${task.id}/subtasks/${subtask.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          complete: complete
+        })
+      })
+    }
+    
+    const action = complete ? 'completed' : 'marked incomplete'
+    toast.success(`All subtasks ${action}!`)
+    
+  } catch (err) {
+    toast.error(err.message)
+    // Refresh to restore correct state
+    fetchTasks()
+  } finally {
+  }
+}
+
+// Check if a subtask is locked due to dependencies
+const isSubtaskLocked = (task, subtask) => {
+  if (!subtask.dependsOn || subtask.complete) return false
+  
+  const dependentSubtask = task.subtasks.find(s => s.id === subtask.dependsOn)
+  return dependentSubtask && !dependentSubtask.complete
+}
+
+// Get the title of the dependent subtask
+const getDependentSubtaskTitle = (task, dependsOnId) => {
+  const dependentSubtask = task.subtasks.find(s => s.id === dependsOnId)
+  return dependentSubtask?.title || 'Unknown'
+}
+
+const deleteSubtask = async (taskId, subtaskId, fromButton = false) => {
+  // Find the task and subtask
+  const foundTask = Array.from(tasks.value).find((task) => task.id === taskId)
+  const foundSubtask = foundTask?.subtasks.find((sub) => sub.id === subtaskId)
+  
+  // If subtask is locked and click didn't come from button, don't allow deletion
+  if (!fromButton && foundSubtask && isSubtaskLocked(foundTask, foundSubtask)) {
+    return
+  }
+  
   $q.dialog({
     title: 'Confirm Delete',
     message: 'Are you sure you want to delete this subtask?',
@@ -1144,8 +1416,8 @@ watch(selectedFilter, (newVal, oldVal) => {
 
 <style>
 
-.container {margin:50px auto; max-width:1200px; padding-inline: 10px;}
-.filter-container{display: flex;justify-content: space-between; gap:10px;}
+.container {margin:50px auto; max-width:1200px; padding-inline: 15px;}
+.filter-container{display: flex;justify-content: space-between; gap:15px;}
 
 /* Search input styles with smooth expansion */
 .search-input {
@@ -1194,7 +1466,7 @@ watch(selectedFilter, (newVal, oldVal) => {
   height: 100%;
   width:100%;
   background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px);
 } */
  .bg-light-mode {
   background-color: #f0f0f0;

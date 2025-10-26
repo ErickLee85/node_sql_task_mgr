@@ -71,8 +71,11 @@ function initializeDatabase() {
         task_id INTEGER NOT NULL,
         title TEXT NOT NULL,
         complete INTEGER DEFAULT 0,
+        order_id INTEGER DEFAULT 0,
+        depends_on INTEGER,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+        FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+        FOREIGN KEY (depends_on) REFERENCES subtasks(subtask_id) ON DELETE SET NULL
     )`;
 
     DB.run(subtasksSql, [], (err) => {
@@ -81,6 +84,19 @@ function initializeDatabase() {
             return;
         }
         console.log('Subtasks table ready')
+        
+        // Add columns to existing table if they don't exist
+        DB.run('ALTER TABLE subtasks ADD COLUMN order_id INTEGER DEFAULT 0', (err) => {
+            if(err && !err.message.includes('duplicate column')) {
+                console.log('Note: order_id column may already exist')
+            }
+        });
+        
+        DB.run('ALTER TABLE subtasks ADD COLUMN depends_on INTEGER', (err) => {
+            if(err && !err.message.includes('duplicate column')) {
+                console.log('Note: depends_on column may already exist')
+            }
+        });
     });
 }
 
